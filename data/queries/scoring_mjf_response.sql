@@ -1,4 +1,4 @@
 select * 
 FROM
-mh.mjf_response_data
-where `Deal Role Name`='variable_role'
+sb_ai.mjf_response_data
+where deal_role_name='variable_role'

@@ -36,6 +36,7 @@ def do_prediction():
     else:
         logging.error("Content-Type not supported!")
         return 'Content-Type not supported!'
+
    
 def getPredictions(dealID,n):
     scoring_data= main(dealID)

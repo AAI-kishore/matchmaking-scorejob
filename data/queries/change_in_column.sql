@@ -1,0 +1,1 @@
+select * from sb_ai.change_in_column_name

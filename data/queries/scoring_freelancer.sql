@@ -1,4 +1,4 @@
 SELECT *
 FROM
-mh.preprocessed_freelancer
-WHERE (`Status`='Approved') and (`Role` like '%%variable_role%%');
+sb_ai.preprocessed_freelancer
+WHERE (status='Approved') and (role like '%%variable_role%%');

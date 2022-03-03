@@ -3,5 +3,4 @@ myenv
 myenv_notebook
 notebook
 requirements_notebook.txt
-.env
 __pycache__

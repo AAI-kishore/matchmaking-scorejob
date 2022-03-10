@@ -2,7 +2,6 @@ myenv
 myenv_notebook
 notebook
 .git
-.gitignore
 Project Documentation.docx
 __pycache__
 requirements_notebook.txt

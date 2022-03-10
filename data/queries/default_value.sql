@@ -1,0 +1,1 @@
+select * from sb_ai.default_value

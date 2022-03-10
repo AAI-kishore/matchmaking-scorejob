@@ -5,6 +5,7 @@ import os
 
 from src.inference.features import get_features
 from src.data.dbutils import required_dfs_for_input
+from src.inference.preprocess_new_deal import get_processed_job_data
 
 def get_model(deal_role):
     if deal_role in ['Growth Marketer','Paid Social Media Marketer','Email Marketer','Paid Search Marketer']:
@@ -27,10 +28,10 @@ def get_prediction(model,val_data,scoring_data):
     scoring_data['pred_prob'] = df_val_probs
     
     scoring_data = scoring_data.sort_values(by = 'pred_prob', ascending = False).reset_index()
-    scoring_data['Rank'] = scoring_data['pred_prob'].rank(ascending=False)
+    scoring_data['Rank'] = scoring_data['pred_prob'].rank(method='min',ascending=False)
     
     return scoring_data
- 
+
 
 def main(deal_id):
     """
@@ -38,10 +39,12 @@ def main(deal_id):
     """
     required_data= required_dfs_for_input(deal_id)
     if not isinstance(required_data,str):
-        deal_role, jobs_data, FL_scoring_data, mjf_response= required_data
+        deal_role, new_job_data, default_value_df, cnc_df, df_ordinal_ratio, FL_scoring_data, mjf_response= required_data
     else:
         return required_data
-
+    
+    jobs_data= get_processed_job_data(new_job_data,default_value_df,df_ordinal_ratio)    
+    
     FL_scoring_data['Hourly Pay Rate'] = FL_scoring_data['Hourly Pay Rate'].fillna(int(FL_scoring_data['Hourly Pay Rate'].mean()))
     
     # Joining FL and mjf to get Response Ratio
@@ -77,5 +80,4 @@ def main(deal_id):
     scoring_data= get_prediction(model,val_data,scoring_data)
 
     return scoring_data
-
 

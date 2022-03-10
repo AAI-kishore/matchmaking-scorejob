@@ -18,15 +18,21 @@ class ConnectionParams(enum.Enum):
     database = os.getenv("DATABASE")
     database_type = os.getenv("DATABASE_TYPE")
     project_id= os.getenv("PROJECT_ID")
+    location= os.getenv("LOCATION")
+    database_name= os.getenv("DATABASE_NAME")
 
 
 @contextmanager
 def get_connection():
 
     if ConnectionParams.database_type.value == 'mysql':
-        db_url= f"mysql://{ConnectionParams.username.value}:{urllib.parse.quote_plus(ConnectionParams.password.value)}" \
-                f"@{ConnectionParams.server.value}/{ConnectionParams.database.value}"
-                
+        db_url= f"mysql://{ConnectionParams.username.value}:" \
+                f"{urllib.parse.quote_plus(ConnectionParams.password.value)}" \
+                f"@/" \
+                f"{ConnectionParams.database.value}" \
+                "?unix_socket=/cloudsql/" \
+                f"{ConnectionParams.project_id.value}:{ConnectionParams.location.value}:{ConnectionParams.database_name.value}"
+             
         logging.debug(f"database url: {db_url}")
         engine = create_engine(db_url)
         conn= engine.connect()
@@ -41,14 +47,14 @@ def get_connection():
         conn.close()
 
 def gbq_client():
+    
     credentials = pydata_google_auth.load_user_credentials(
                         os.path.join('config','credentials.json')
                     )
-    
     #getting project_id
     project_id = ConnectionParams.project_id.value
     # Construct a BigQuery client object.
-    client = bigquery.Client(project=project_id,credentials=credentials)
+    client = bigquery.Client(project=project_id, credentials=credentials)
     return client
 
 

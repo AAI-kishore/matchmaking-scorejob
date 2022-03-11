@@ -6,7 +6,6 @@ from contextlib import contextmanager
 import enum
 import urllib.parse
 import logging
-import pydata_google_auth
 from google.cloud import bigquery
 load_dotenv(find_dotenv())
 
@@ -47,18 +46,11 @@ def get_connection():
         conn.close()
 
 def gbq_client():
-    
-    credentials = pydata_google_auth.load_user_credentials(
-                        os.path.join('config','credentials.json')
-                    )
     #getting project_id
     project_id = ConnectionParams.project_id.value
     # Construct a BigQuery client object.
-    client = bigquery.Client(project=project_id, credentials=credentials)
+    client = bigquery.Client(project=project_id)
     return client
-
-
-
 
     
 

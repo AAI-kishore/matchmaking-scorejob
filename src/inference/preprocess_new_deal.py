@@ -1,6 +1,7 @@
 import pandas as pd
 from collections import defaultdict
 import math
+import numpy as np
 
 def null_treatment(df,default_value_df):
     """
@@ -189,9 +190,9 @@ def fillna_Weekly_Hourly_buget(eng_level,budget,Jobs_Deal_Budget_median_dict):
             final_budget = budget
     else:
         if math.isnan(budget):
-            final_budget = Jobs_Deal_Budget_median_dict['Full-time (40 hours a week)']
+            final_budget = Jobs_Deal_Budget_median_dict['Full-time (40 Hours a week)']
         elif budget < 10:
-            final_budget = Jobs_Deal_Budget_median_dict['Full-time (40 hours a week)']     
+            final_budget = Jobs_Deal_Budget_median_dict['Full-time (40 Hours a week)']     
         else:
             final_budget = budget
     return  final_budget
@@ -274,7 +275,7 @@ def get_processed_job_data(new_job_data,default_value_df,df_ordinal_ratio):
     jobs = pd.concat([jobs, Engagement_dummies], axis=1)
 
     #Weekly or Hourly Budget
-    jobs['Weekly or Hourly Budget']= jobs['Weekly or Hourly Budget'].astype(float)
+    jobs['Weekly or Hourly Budget']= jobs['Weekly or Hourly Budget'].apply(lambda x: float(x) if x not in ['null',""] else np.nan)
     jobs['hourly_budget'] = jobs.apply(lambda x: hourly_budget(x['Cleaned_Engagement_Level'],x['Weekly or Hourly Budget']),axis = 1)
     #getting jobs budget median for each cleaned engagement level
     Jobs_Deal_Budget_median_dict=dict(default_value_df[default_value_df['column_name']=='New_Hourly_budget'][['criteria','value']].values)

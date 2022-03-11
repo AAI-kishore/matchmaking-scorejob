@@ -73,7 +73,7 @@ def required_dfs_for_input(deal_id):
     #fetch deal role from input deal data
     deal_role= fetch_deal_role(new_job_data)
     
-    if deal_role!='__NotFound__':
+    if deal_role not in ['__NotFound__','null',""," "]:
         with connections.gbq_client() as client:
             #get change in column name df
             get_change_in_column_names_df(client)

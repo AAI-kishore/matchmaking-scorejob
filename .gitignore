@@ -4,3 +4,4 @@ myenv_notebook
 notebook
 requirements_notebook.txt
 __pycache__
+credentials.json

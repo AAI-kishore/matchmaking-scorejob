@@ -63,7 +63,7 @@ def get_default_df(client):
     df= df.rename(change_column_dict(cnc_df,"default_value"),axis=1)
     return df
 
-def required_dfs_for_input(deal_id):
+def required_dfs_for_input(deal_id,model):
     """
     based on jobs data, deal role is fetched. If there is no deal role,
     unable to make scoring data and it simply returns 'deal_role_not_found'
@@ -74,18 +74,31 @@ def required_dfs_for_input(deal_id):
     deal_role= fetch_deal_role(new_job_data)
     
     if deal_role not in ['__NotFound__','null',""," "]:
-        with connections.gbq_client() as client:
-            #get change in column name df
-            get_change_in_column_names_df(client)
-            #get deal mode value from gbq
-            default_value_df= get_default_df(client)
-            #getting ordinal ratio df
-            df_ordinal_ratio= get_ordinal_value_df(client)
-            #getting preprocessed freelancers data based on deal role
-            FL_scoring_data= get_scoring_FL_data(deal_role, client)
-            #getting mjf response data based on deal_role
-            mjf_response= get_mjf_response(deal_role,client)
-        return deal_role, new_job_data, default_value_df, cnc_df, df_ordinal_ratio, FL_scoring_data, mjf_response
+        
+        if model=='likelyhood-to-respond':
+            with connections.gbq_client() as client:
+                #get change in column name df
+                get_change_in_column_names_df(client)
+                #get deal mode value from gbq
+                default_value_df= get_default_df(client)
+                #getting ordinal ratio df
+                df_ordinal_ratio= get_ordinal_value_df(client)
+                #getting preprocessed freelancers data based on deal role
+                FL_scoring_data= get_scoring_FL_data(deal_role, client)
+                #getting mjf response data based on deal_role
+                mjf_response= get_mjf_response(deal_role,client)
+            return deal_role, new_job_data, default_value_df, df_ordinal_ratio, FL_scoring_data, mjf_response
+        
+        elif model=='keyword-search':
+            with connections.gbq_client() as client:
+                #get change in column name df
+                get_change_in_column_names_df(client)
+                #get deal mode value from gbq
+                default_value_df= get_default_df(client)
+                #getting preprocessed freelancers data based on deal role
+                FL_scoring_data= get_scoring_FL_data(deal_role, client)
+            return new_job_data,default_value_df,FL_scoring_data
+
     else:
         return "deal_role_not_found"
 

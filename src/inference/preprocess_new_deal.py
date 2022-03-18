@@ -47,6 +47,14 @@ def replace_indus_exp(exp,accepted_exp_list):
         assigned_exp= 'Local Business'
     elif exp=='DO NOT USE >> Subscription':
         assigned_exp= 'E-Commerce'
+    elif exp=='Non-Profit':
+        assigned_exp= 'Non Profit'
+    elif exp=='Subscription':
+        assigned_exp= 'E-Commerce'
+    elif exp=='Retail':
+        assigned_exp= 'Local Business'
+    elif exp=='B2B':
+        assigned_exp= 'B2B Tech'
     return assigned_exp
 
 def dummies_industry_exp(x,accepted_exp_list):

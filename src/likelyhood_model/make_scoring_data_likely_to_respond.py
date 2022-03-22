@@ -2,11 +2,20 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 import pickle
 import os
+import time
+import re
 
-from src.inference.features import get_features
+from src.likelyhood_model.features import get_features
 from src.data.dbutils import required_dfs_for_input
-from src.inference.preprocess_new_deal import get_processed_job_data
-from src.inference.generate_score_data_with_keyword_extraction import generate_fl_score_data_for_extracted_keyword
+from src.likelyhood_model.preprocess_new_deal import get_processed_job_data
+from src.data.dbutils import push_pandas_df_to_gbq
+
+def clean_the_column(x):
+    x= x.strip()
+    x= x.lower()
+    BAD_SYMBOLS_RE = re.compile('[^0-9a-zA-Z_]')
+    x= BAD_SYMBOLS_RE.sub('_',x)
+    return x
 
 def get_model(deal_role):
     if deal_role in ['Growth Marketer','Paid Social Media Marketer','Email Marketer','Paid Search Marketer']:
@@ -65,6 +74,24 @@ def main_likelyhood_model(deal_id):
 
     scoring_data['No Response - Decline Reason (Last 30 Days)'] = scoring_data['No Response - Decline Reason (Last 30 Days)'].apply(lambda x: 1 - x)
     
+    #creating epoch_time
+    input_epoch_time= int(time.time())
+    scoring_data['input_epoch_time']= input_epoch_time
+
+    #changing column names which will be suitable for gbq loading
+    columns_list= list(scoring_data.columns)
+    rename_columns= [clean_the_column(col) for col in columns_list]
+    rename_dict= dict(zip(columns_list,rename_columns))
+    scoring_data_gbq= scoring_data.rename(rename_dict,axis=1)
+    #preprocessing for loading into gbq
+    scoring_data_gbq['ordinal_company_size']=scoring_data_gbq['ordinal_company_size'].astype(float)
+    scoring_data_gbq['ordinal_how_soon']=scoring_data_gbq['ordinal_how_soon'].astype(float)
+    scoring_data_gbq['ordinal_how_long']=scoring_data_gbq['ordinal_how_long'].astype(float)
+    scoring_data_gbq['ordinaldeal_priority']=scoring_data_gbq['ordinaldeal_priority'].astype(float)
+    
+    #pushing input data for the model to gbq
+    push_pandas_df_to_gbq(scoring_data_gbq,"sb_ai","ai_input_likelihood_to_respond")
+
     #Final Features
     Final_Features = Continuous_var + Final_categorical_var + scaling_var
     
@@ -77,24 +104,17 @@ def main_likelyhood_model(deal_id):
     scoring_data= get_prediction(model,val_data,scoring_data)
 
     scoring_data = scoring_data.sort_values(by = 'pred_prob', ascending = False).reset_index(drop=True)
-    scoring_data['Rank'] = scoring_data['pred_prob'].rank(method='min',ascending=False)
+    scoring_data['rank'] = scoring_data['pred_prob'].rank(method='min',ascending=False)
 
-    #required columns
-    req_cols = ['Deal ID','Type of Marketer','Email','pred_prob','Rank']
+    #required columns for api response and gbq output
+    req_cols = ['input_epoch_time','Deal ID','Type of Marketer','Email','pred_prob','rank']
     scoring_data= scoring_data[req_cols]
-
-    return scoring_data
-
-def main_keyword_search(deal_id):
-    """
-    when deal role is not found with deal id, required_dfs_for_input returns 'role_not_found'
-    """
-    required_data= required_dfs_for_input(deal_id,model="keyword-search")
-    if not isinstance(required_data,str):
-        new_job_data,default_value_df,FL_scoring_data= required_data
-    else:
-        return required_data
-    
-    scoring_data= generate_fl_score_data_for_extracted_keyword(new_job_data,default_value_df,FL_scoring_data)
+    rename_columns= {
+                "Deal ID":"deal_id",
+                "Type of Marketer":"type_of_marketer",
+                "Email":"email",
+                'pred_prob':'pred_prob'
+            }
+    scoring_data= scoring_data.rename(rename_columns,axis=1)
 
     return scoring_data

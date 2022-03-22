@@ -15,7 +15,8 @@ logging.getLogger("Flask").setLevel(logging.ERROR)
 import warnings
 warnings.filterwarnings('ignore')
 
-from src.inference.make_scoring_data import main_likelyhood_model,main_keyword_search
+from src.likelyhood_model.make_scoring_data_likely_to_respond import main_likelyhood_model
+from src.keyword_search_model.make_scoring_data_keyword_search import main_keyword_search
 from src.data.dbutils import push_pandas_df_to_gbq
 
 app = Flask(__name__)
@@ -42,19 +43,8 @@ def do_prediction_likelyhood_model():
             return "error in predicting from the model"
         
         #returning for proper deal role
-        if not (isinstance(scoring_data,str)):
-            req_cols = ['Deal ID','Type of Marketer','Email','pred_prob','Rank']
-            rename_columns= {
-                "Deal ID":"deal_id",
-                "Type of Marketer":"type_of_marketer",
-                "Email":"email",
-                'pred_prob':'pred_prob',
-                'Rank':"rank"
-            }
-            scoring_data= scoring_data[req_cols]
-            scoring_data= scoring_data.rename(rename_columns,axis=1)
-        else:
-            message= {"message":"No Role found for the supplied dealId"}
+        if (isinstance(scoring_data,str)):
+            message= {"message":"Deal ID or Role is not found"}
             logging.error(f"""{message}""")
             return message
         
@@ -62,7 +52,7 @@ def do_prediction_likelyhood_model():
             top_n = int(data['top_n'])
         except Exception as e:
             logging.exception(e)
-            result_json= scoring_data.to_json(orient='records')
+            result_json= scoring_data.drop('input_epoch_time',axis=1).to_json(orient='records')
             scoring_data['created_at']= datetime.now()
             #appending scoring data to google biq query
             push_pandas_df_to_gbq(scoring_data, "sb_ai","scoring_data")
@@ -70,7 +60,7 @@ def do_prediction_likelyhood_model():
         
         #top_n response
         scoring_df_top_n= scoring_data.iloc[:top_n]
-        result_json = scoring_df_top_n.to_json(orient="records")
+        result_json = scoring_df_top_n.drop('input_epoch_time',axis=1).to_json(orient="records")
         #creating time stamp
         scoring_data['created_at']= datetime.now()
         #appending scoring data to google biq query
@@ -102,15 +92,8 @@ def do_prediction_keyword_search():
             return "error in predicting from the model"
         
         #returning for proper deal role
-        if not (isinstance(scoring_data,str)):
-            rename_columns= {
-                "Deal ID":"deal_id",
-                "Type of Marketer":"type_of_marketer",
-                "Email":"email"
-            }
-            scoring_data= scoring_data.rename(rename_columns,axis=1)
-        else:
-            message= {"message":"No Role found for the supplied dealId"}
+        if (isinstance(scoring_data,str)):
+            message= {"message":"Deal ID or Role is not found"}
             logging.error(f"""{message}""")
             return message
         
@@ -118,7 +101,7 @@ def do_prediction_keyword_search():
             top_n = int(data['top_n'])
         except Exception as e:
             logging.exception(e)
-            result_json= scoring_data.to_json(orient='records')
+            result_json= scoring_data.drop('input_epoch_time',axis=1).to_json(orient='records')
             scoring_data['created_at']= datetime.now()
             #appending scoring data to google biq query
             push_pandas_df_to_gbq(scoring_data, "sb_ai","ai_output_keywordsearch")
@@ -126,7 +109,7 @@ def do_prediction_keyword_search():
         
         #top_n response
         scoring_df_top_n= scoring_data.iloc[:top_n]
-        result_json = scoring_df_top_n.to_json(orient="records")
+        result_json = scoring_df_top_n.drop('input_epoch_time',axis=1).to_json(orient="records")
         #creating time stamp
         scoring_data['created_at']= datetime.now()
         #appending scoring data to google biq query

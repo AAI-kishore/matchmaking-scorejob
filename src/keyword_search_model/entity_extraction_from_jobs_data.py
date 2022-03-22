@@ -6,7 +6,6 @@ import logging
 output_dir = os.path.join('models','NER_model')
 nlp=spacy.load(output_dir)
 
-
 def accepted_exp():
     accepted_exp_list= [
         "E-Commerce",
@@ -43,11 +42,6 @@ def replace_indus_exp(exp,accepted_exp_list):
         assigned_exp= 'B2B Tech'
 
     return assigned_exp
-
-def len_Paragraphs(text):
-    #Par_len = len(text.split("\n\n"))
-    Par_len = len(re.split(r'\n+', text))
-    return Par_len
 
 def sentences_list(text):
     text = text.strip()
@@ -125,7 +119,7 @@ def extracting_entities(text,entity_name):
         d.append(",".join([str(elem) for elem in doc]))
     return d
 
-def extract_entities_from_jobs_data(new_job_data,default_value_df):
+def extract_entities_from_jobs_data(new_job_data):
     
     #required columns for key word generation of jobs data
     required_columns= [ 
@@ -141,9 +135,7 @@ def extract_entities_from_jobs_data(new_job_data,default_value_df):
         ]
     jobs= new_job_data[required_columns]
 
-    #treating null values replacing values if necessary
-    fillna_value= default_value_df[default_value_df['column_name']=='Industry Experience']['value'].values[0]
-    jobs['Industry Experience']= jobs['Industry Experience'].fillna(value= fillna_value)
+    #replacing values if necessary
     jobs['Industry Experience']= jobs['Industry Experience'].apply(lambda x: replace_indus_exp(x,accepted_exp()))
     #treating null values
     for i in jobs.columns:
@@ -216,118 +208,3 @@ def extract_entities_from_jobs_data(new_job_data,default_value_df):
     jobs_data_entities_extracted['key']=1
 
     return jobs_data_entities_extracted
-
-def get_FL_scoring_data(FL_scoring_data):
-    #filtering on cleaned hours avail
-    FL_scoring_data = FL_scoring_data[~(FL_scoring_data['Cleaned_Hours_Avail'] == 'Not Accepting New Jobs')]
-    select_columns= [
-        "key",
-        "Email",
-        "FL_Tools_Platform_Entities_NER",
-        "FL_Industry_Entities_NER",
-        "FL_Strategy_Entities_NER",
-        "FL_Skills_Entities_NER"
-    ]
-    fl_entities_extracted_data= FL_scoring_data[select_columns]
-    return fl_entities_extracted_data
-
-def similarity_score(FL_col,Jobs_col):
-    score = 0
-    FL_tokens = FL_col.split(",")
-    Jobs_tokens = Jobs_col.split(",")
-    Total_Job_Tokens = len(Jobs_tokens)
-    if (len(Jobs_col.strip())) > 0:
-        Matching_Tokens = 0
-        for i in Jobs_tokens:
-            for j in FL_tokens:
-                if j == i:
-                    Matching_Tokens = Matching_Tokens + 1
-        score =  float(Matching_Tokens/Total_Job_Tokens)
-    else:
-        score = 0
-    return score
-
-def get_entity_weightages():
-    Tools_Weightage = 0.2
-    Industry_Weightage = 0.45
-    Strategy_Weightage = 0.05
-    Skills_Weightage = 0.3
-    return Tools_Weightage,Industry_Weightage,Strategy_Weightage,Skills_Weightage
-
-def generate_fl_score_data_for_extracted_keyword(new_job_data,default_value_df,FL_scoring_data):
-    #getting extracted entities job data
-    jobs_data_entities_extracted= extract_entities_from_jobs_data(new_job_data,default_value_df)
-    #getting extracted entities freelancers data
-    fl_entities_extracted_data= get_FL_scoring_data(FL_scoring_data)
-
-    #merging all the data
-    mf= pd.merge(jobs_data_entities_extracted,fl_entities_extracted_data,on='key').drop('key',axis=1)
-    #null treatment
-    for i in mf.columns:
-        mf[i]= mf[i].fillna(" ")
-    
-    #getting entity weightages
-    Tools_Weightage,Industry_Weightage,Strategy_Weightage,Skills_Weightage= get_entity_weightages()
-
-    #calculating similarity score for each entity corresponding to deal and freelancer data
-    mf['Tools_score'] = mf.apply(lambda x: similarity_score(x['FL_Tools_Platform_Entities_NER'],x['Jobs_Tools_Platform_Entities_NER']),axis = 1)
-    mf['Industry_score'] = mf.apply(lambda x: similarity_score(x['FL_Industry_Entities_NER'],x['Jobs_Industry_Entities_NER']),axis = 1)
-    mf['Strategy_score'] = mf.apply(lambda x: similarity_score(x['FL_Strategy_Entities_NER'],x['Jobs_Strategy_Entities_NER']),axis = 1)
-    mf['Skills_score'] = mf.apply(lambda x: similarity_score(x['FL_Skills_Entities_NER'],x['Jobs_Skills_Entities_NER']),axis = 1)
-
-    #calculating weightage score based on strategy
-    strategy = jobs_data_entities_extracted['Jobs_Strategy_Entities_NER'].iloc[0]
-    len_Strategy = len(strategy.strip())
-    value = 4
-    if len_Strategy > 0:
-        weight_value = 1
-        #value = 4
-    else:
-        weight_value = 0.95
-        #value = 3
-
-    mf['score_keyword_search'] = (mf['Tools_score'] * Tools_Weightage) + (mf['Industry_score']*Industry_Weightage) + (mf['Strategy_score']*Strategy_Weightage) + (mf['Skills_score']*Skills_Weightage)
-    mf['score_keyword_search'] = mf['score_keyword_search']/weight_value
-
-    #calculating rank based on Final score
-    mf['rank_keyword_search']= mf['score_keyword_search'].rank(method='min',ascending=False)
-
-    #select required columns
-    mf= mf[[
-        'Deal ID',
-        'Type of Marketer',
-        'Email',
-        "score_keyword_search",
-        "rank_keyword_search"
-        ]]
-    mf= mf.sort_values(by='rank_keyword_search').reset_index(drop=True)
-    
-    return mf
-
-
-
-
-
-
-
-
-
-    
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    

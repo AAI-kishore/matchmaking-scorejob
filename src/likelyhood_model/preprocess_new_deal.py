@@ -215,12 +215,8 @@ def get_processed_job_data(new_job_data,default_value_df,df_ordinal_ratio):
         'Weekly or Hourly Budget',
         'How soon do you need the marketer?',
         'How long do you need the marketer?',
-        #'What is the size of your business?',
         'Industry Experience',
-        #'Industry Experience Other',
         'Type of Marketer',
-        # 'Match Status',
-        # 'Contact ID',
         'How big is your company?'
         ]]
     
@@ -234,8 +230,7 @@ def get_processed_job_data(new_job_data,default_value_df,df_ordinal_ratio):
         'What level of engagement will you require from the marketer?':'Jobs_Engagement Level',
         'How long do you need the marketer?':'How_long',
         'How big is your company?':'Company_size',
-        'Industry Experience':'Jobs_Industry Experience',
-        #'Industry Experience Other':'Jobs_Industry Experience Other'
+        'Industry Experience':'Jobs_Industry Experience'
         }
     jobs = jobs.rename(columns=jobs_rename_cols)
 

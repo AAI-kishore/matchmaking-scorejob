@@ -31,7 +31,7 @@ def get_connection():
                 f"{ConnectionParams.database.value}" \
                 "?unix_socket=/cloudsql/" \
                 f"{ConnectionParams.project_id.value}:{ConnectionParams.location.value}:{ConnectionParams.database_name.value}"
-             
+                
         logging.debug(f"database url: {db_url}")
         engine = create_engine(db_url)
         conn= engine.connect()
@@ -52,12 +52,3 @@ def gbq_client():
     client = bigquery.Client(project=project_id)
     return client
 
-    
-
-
-
-        
-    
-    
-
-    

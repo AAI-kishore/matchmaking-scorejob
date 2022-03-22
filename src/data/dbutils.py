@@ -21,8 +21,15 @@ def change_column_dict(cnc_df,table_name):
     df= cnc_df[cnc_df['gbq_table_name']==table_name].drop('gbq_table_name',axis=1)
     return {v:k for k,v in df.values}
 
-def get_new_job_data(deal_id):
-    query= get_query_from_file("new_deal")
+def get_new_job_data_for_likely_to_respond(deal_id):
+    query= get_query_from_file("new_deal_likelyhood_model")
+    query= query.replace("@deal_id@",f"{deal_id}")
+    with connections.get_connection() as connection:
+        df= pd.read_sql_query(sql= query,con=connection)
+    return df
+
+def get_new_job_data_for_keyword_search(deal_id):
+    query= get_query_from_file("new_deal_keyword_search_model")
     query= query.replace("@deal_id@",f"{deal_id}")
     with connections.get_connection() as connection:
         df= pd.read_sql_query(sql= query,con=connection)
@@ -68,14 +75,14 @@ def required_dfs_for_input(deal_id,model):
     based on jobs data, deal role is fetched. If there is no deal role,
     unable to make scoring data and it simply returns 'deal_role_not_found'
     """
-    #getting deal from mysql
-    new_job_data= get_new_job_data(deal_id)
-    #fetch deal role from input deal data
-    deal_role= fetch_deal_role(new_job_data)
     
-    if deal_role not in ['__NotFound__','null',""," "]:
+    if model=='likelyhood-to-respond':
+        #getting deal from mysql
+        new_job_data= get_new_job_data_for_likely_to_respond(deal_id)
+        #fetch deal role from input deal data
+        deal_role= fetch_deal_role(new_job_data)
         
-        if model=='likelyhood-to-respond':
+        if deal_role not in ['__NotFound__','null',""," "]:
             with connections.gbq_client() as client:
                 #get change in column name df
                 get_change_in_column_names_df(client)
@@ -88,19 +95,23 @@ def required_dfs_for_input(deal_id,model):
                 #getting mjf response data based on deal_role
                 mjf_response= get_mjf_response(deal_role,client)
             return deal_role, new_job_data, default_value_df, df_ordinal_ratio, FL_scoring_data, mjf_response
+        else:
+            return "deal_role_not_found"
         
-        elif model=='keyword-search':
+    elif model=='keyword-search':
+        #getting deal from mysql
+        new_job_data= get_new_job_data_for_keyword_search(deal_id)
+        #fetch deal role from input deal data
+        deal_role= fetch_deal_role(new_job_data)
+        if deal_role not in ['__NotFound__','null',""," "]:
             with connections.gbq_client() as client:
                 #get change in column name df
                 get_change_in_column_names_df(client)
-                #get deal mode value from gbq
-                default_value_df= get_default_df(client)
                 #getting preprocessed freelancers data based on deal role
                 FL_scoring_data= get_scoring_FL_data(deal_role, client)
-            return new_job_data,default_value_df,FL_scoring_data
-
-    else:
-        return "deal_role_not_found"
+            return new_job_data,FL_scoring_data
+        else:
+            return "deal_role_not_found"
 
 def push_pandas_df_to_gbq(df,schema,table_name):
       with connections.gbq_client() as client:
